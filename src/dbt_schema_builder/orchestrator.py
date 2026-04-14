@@ -21,6 +21,7 @@ async def orchestrate(
     relation_name: str,
     resolver: DescriptionResolver,
     bq_client: Client,
+    include_data_tests: bool = True,
 ) -> DbtModelSchema:
     """Run profiling and description resolution, then assemble the output schema.
 
@@ -44,8 +45,12 @@ async def orchestrate(
             asyncio.create_task(resolver.resolve_column(col.column_name, model_name, dataset, relation_name))
         )
 
-    # Pass 2 queries
-    columns_needing_pass_two = [c for c in columns if c.needs_pass_two(pass_one_stats[c.column_name])]
+    # Pass 2 queries (only needed when including data tests)
+    columns_needing_pass_two = (
+        [c for c in columns if c.needs_pass_two(pass_one_stats[c.column_name])]
+        if include_data_tests
+        else []
+    )
 
     async def _run_pass_two(col: ProfiledColumn) -> tuple[str, Any]:
         sql = col.pass_two_query(pass_one_stats[col.column_name], table_ref)
@@ -72,4 +77,5 @@ async def orchestrate(
         pass_one_stats=pass_one_stats,
         pass_two_results=pass_two_results,
         column_descriptions=column_descriptions,
+        include_data_tests=include_data_tests,
     )

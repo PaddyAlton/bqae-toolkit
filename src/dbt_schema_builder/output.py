@@ -38,6 +38,7 @@ def assemble_schema(
     pass_one_stats: dict[str, PassOneStats],
     pass_two_results: dict[str, Any],
     column_descriptions: dict[str, str],
+    include_data_tests: bool = True,
 ) -> DbtModelSchema:
     """Assemble a DbtModelSchema from profiling results and descriptions."""
     dbt_columns: list[DbtColumnSchema] = []
@@ -49,7 +50,7 @@ def assemble_schema(
             stats = PassOneStats(null_count=0, distinct_count=0, total_count=0)
 
         pass_two = pass_two_results.get(col.column_name)
-        tests = col.to_dbt_tests(stats, pass_two)
+        tests = col.to_dbt_tests(stats, pass_two) if include_data_tests else []
         meta = col.to_dbt_meta(stats)
         description = column_descriptions.get(col.column_name, "")
 

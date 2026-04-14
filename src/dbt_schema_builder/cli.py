@@ -48,6 +48,7 @@ def schema_builder(
     dbt_project_dir: Path | None = None,
     bq_project: str | None = None,
     max_accepted_values: int = MAX_ACCEPTED_VALUES,
+    include_data_tests: bool = True,
 ) -> None:
     """Profile a BigQuery table and output a dbt YAML schema block."""
     from google.cloud.bigquery import Client
@@ -94,6 +95,7 @@ def schema_builder(
             relation_name=relation_name,
             resolver=resolver,
             bq_client=bq_client,
+            include_data_tests=include_data_tests,
         )
     )
 
