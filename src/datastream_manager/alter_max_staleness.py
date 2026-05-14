@@ -11,6 +11,7 @@ Note:
 """
 
 import logging
+import os
 
 from pathlib import Path
 
@@ -160,21 +161,31 @@ app = App(
 
 
 @app.default
-def main(dataset: str, table_name: str, max_staleness: str = "1h"):
+def main(
+    dataset: str,
+    table_name: str,
+    max_staleness: str = "1h",
+    project: str | None = None,
+):
     """
     Alter the maximum staleness option of a BigQuery table,
     or all tables in the target dataset with max_staleness
     already set
+
     Inputs:
         dataset - the dataset name
         table_name - the table name (or special value "ALL_TABLES")
         max_staleness - the max staleness to set (e.g. '2h', '15m', etc.)
+        project - GCP project name
+            (will attempt to read $GOOGLE_CLOUD_PROJECT if not set)
+
     """
     logger = setup_logger("alter_max_staleness")
     client = Client()
 
     ddl_interval = parse_interval(max_staleness)
-    project = "justpark-production"
+    if project is None:
+        project = os.environ["GOOGLE_CLOUD_PROJECT"]
 
     _validate_identifiers(project, dataset, table_name)
 
