@@ -52,7 +52,8 @@ class TestAssembleSchema:
             column_descriptions={"payload": "JSON data"},
         )
         assert schema.columns[0].data_tests == []
-        assert schema.columns[0].meta == {"data_type": "JSON"}
+        assert schema.columns[0].data_type == "JSON"
+        assert schema.columns[0].meta == {}
 
     def test_all_null_column(self):
         columns = [
@@ -70,7 +71,8 @@ class TestAssembleSchema:
             column_descriptions={},
         )
         assert schema.columns[0].data_tests == []
-        assert schema.columns[0].meta == {"data_type": "STRING", "all_null_warning": True}
+        assert schema.columns[0].data_type == "STRING"
+        assert schema.columns[0].meta == {"all_null_warning": True}
 
 
 class TestRenderYaml:
@@ -86,7 +88,8 @@ class TestRenderYaml:
         yaml_str = render_yaml(schema)
         assert "models:" in yaml_str
         assert "name: my_model" in yaml_str
-        assert "description: A model" in yaml_str
+        assert "description: |" in yaml_str
+        assert "A model" in yaml_str
         assert "- not_null" in yaml_str
         assert "- unique" in yaml_str
 
@@ -149,14 +152,36 @@ class TestRenderYaml:
         schema = DbtModelSchema(
             name="test",
             columns=[
-                DbtColumnSchema(name="empty", meta={"data_type": "STRING", "all_null_warning": True}),
+                DbtColumnSchema(name="empty", meta={"all_null_warning": True}),
             ],
         )
         yaml_str = render_yaml(schema)
         assert "config:" in yaml_str
         assert "meta:" in yaml_str
-        assert "data_type: STRING" in yaml_str
         assert "all_null_warning: true" in yaml_str
+
+    def test_data_type_renders_at_column_level_in_order(self):
+        schema = DbtModelSchema(
+            name="test",
+            columns=[
+                DbtColumnSchema(
+                    name="id",
+                    description="Primary key",
+                    data_type="INT64",
+                    data_tests=["not_null"],
+                    meta={"all_null_warning": True},
+                ),
+            ],
+        )
+        yaml_str = render_yaml(schema)
+        assert "data_type: INT64" in yaml_str
+        # Ordering: name → description → data_type → data_tests → config
+        name_idx = yaml_str.index("name: id")
+        desc_idx = yaml_str.index("description: Primary key")
+        dt_idx = yaml_str.index("data_type: INT64")
+        tests_idx = yaml_str.index("data_tests:")
+        config_idx = yaml_str.index("config:")
+        assert name_idx < desc_idx < dt_idx < tests_idx < config_idx
 
     def test_empty_description_still_present(self):
         schema = DbtModelSchema(

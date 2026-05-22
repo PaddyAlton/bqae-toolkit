@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from pathlib import Path
 
@@ -74,6 +75,12 @@ class DescriptionResolver:
             rows = await asyncio.to_thread(lambda: list(self.bq_client.query(sql).result()))
             if rows:
                 raw = rows[0]["option_value"]
+                # BigQuery returns option_value as a SQL string literal — wrapped
+                # in `"`s with `\n` etc. escaped. JSON decoding handles both.
+                try:
+                    raw = json.loads(raw)
+                except (ValueError, TypeError):
+                    pass
                 return sanitise_description(raw)
         except Exception:
             logger.warning("Failed to fetch table description for %s.%s", dataset, relation_name, exc_info=True)

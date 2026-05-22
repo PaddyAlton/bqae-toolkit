@@ -90,7 +90,7 @@ class ColumnProfileBase(BaseModel):
 
     def to_dbt_meta(self, stats: PassOneStats) -> dict:
         """Return dbt meta dict entries for this column."""
-        meta: dict[str, Any] = {"data_type": self.data_type}
+        meta: dict[str, Any] = {}
         if stats.null_count == stats.total_count:
             meta["all_null_warning"] = True
         return meta
@@ -287,7 +287,9 @@ class UnprofilableColumn(ColumnProfileBase):
         return []
 
     def to_dbt_meta(self, stats: PassOneStats) -> dict:
-        return {"data_type": self.data_type}
+        # Override the base so the dummy stats (0,0,0) used for unprofilable
+        # columns don't trip the all-null check.
+        return {}
 
 
 class FallbackColumn(ColumnProfileBase):

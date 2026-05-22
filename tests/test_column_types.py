@@ -245,20 +245,18 @@ class TestDbtTests:
     def test_all_null_meta(self):
         col = StringColumn(column_name="empty", data_type="STRING", ordinal_position=1)
         stats = PassOneStats(null_count=100, distinct_count=0, total_count=100)
-        meta = col.to_dbt_meta(stats)
-        assert meta["all_null_warning"] is True
-        assert meta["data_type"] == "STRING"
+        assert col.to_dbt_meta(stats) == {"all_null_warning": True}
 
-    def test_meta_always_has_data_type(self):
+    def test_meta_empty_when_no_warning(self):
         col = IntegerColumn(column_name="id", data_type="INT64", ordinal_position=1)
         stats = PassOneStats(null_count=0, distinct_count=100, total_count=100)
-        assert col.to_dbt_meta(stats) == {"data_type": "INT64"}
+        assert col.to_dbt_meta(stats) == {}
 
     def test_unprofilable_no_tests(self):
         col = UnprofilableColumn(column_name="payload", data_type="JSON", ordinal_position=1)
         stats = PassOneStats(null_count=0, distinct_count=0, total_count=100)
         assert col.to_dbt_tests(stats) == []
-        assert col.to_dbt_meta(stats) == {"data_type": "JSON"}
+        assert col.to_dbt_meta(stats) == {}
 
     def test_fallback_not_null(self):
         col = FallbackColumn(column_name="raw", data_type="BYTES", ordinal_position=1)

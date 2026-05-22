@@ -19,6 +19,7 @@ class DbtColumnSchema(BaseModel):
 
     name: str
     description: str = ""
+    data_type: str = ""
     data_tests: list[str | dict] = []
     meta: dict = {}
 
@@ -58,6 +59,7 @@ def assemble_schema(
             DbtColumnSchema(
                 name=col.column_name,
                 description=description,
+                data_type=col.data_type,
                 data_tests=tests,
                 meta=meta,
             )
@@ -70,16 +72,23 @@ def assemble_schema(
     )
 
 
+def _literal_block(text: str) -> LiteralScalarString:
+    """Wrap text in a literal block scalar, ensuring a trailing newline so
+    ruamel emits `|` (clip) rather than `|-` (strip)."""
+    if not text.endswith("\n"):
+        text = text + "\n"
+    return LiteralScalarString(text)
+
+
 def _to_commented_map(schema: DbtModelSchema) -> CommentedMap:
     """Convert a DbtModelSchema to a ruamel CommentedMap preserving key order."""
     model = CommentedMap()
     model["name"] = schema.name
 
     if schema.description:
-        if "\n" in schema.description:
-            model["description"] = LiteralScalarString(schema.description)
-        else:
-            model["description"] = schema.description
+        # Always use a literal block scalar so ruamel never falls back to
+        # double-quoting (e.g. when the description contains `:`).
+        model["description"] = _literal_block(schema.description)
     else:
         model["description"] = ""
 
@@ -90,12 +99,14 @@ def _to_commented_map(schema: DbtModelSchema) -> CommentedMap:
 
         if col.description:
             if "\n" in col.description:
-                col_map["description"] = LiteralScalarString(col.description)
+                col_map["description"] = _literal_block(col.description)
             else:
                 col_map["description"] = col.description
         else:
             col_map["description"] = ""
 
+        if col.data_type:
+            col_map["data_type"] = col.data_type
         if col.data_tests:
             col_map["data_tests"] = col.data_tests
         if col.meta:
